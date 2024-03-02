@@ -1,11 +1,11 @@
 const express = require('express');
 const PiCamera = require('pi-camera');
-const fs = require('fs');
 const { exec } = require('child_process');
+const fs = require('fs');
 
 const app = express();
 
-// Default endpoint to serve HTML page with download link
+// Default endpoint to serve HTML page with video download link
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -17,38 +17,22 @@ app.get('/', (req, res) => {
         </head>
         <body>
             <h1>Raspberry Pi Video Stream</h1>
-            <a id="downloadLink" download="video.mp4" href="#">Download Video</a>
-            <script>
-                const downloadLink = document.getElementById('downloadLink');
-                
-                fetch('/video-feed')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        const videoURL = URL.createObjectURL(blob);
-                        downloadLink.href = videoURL;
-                        downloadLink.style.display = 'block'; // Show the download link
-                    })
-                    .catch(error => {
-                        console.error('Error fetching video:', error);
-                    });
-            </script>
+            <a href="/video-feed" download="video.mp4">Download Video</a>
         </body>
         </html>
     `);
 });
 
-// Endpoint to serve the recorded video file
+// Endpoint to serve the recorded video stream
 app.get('/video-feed', async (req, res) => {
     try {
+        // Generate a unique filename for the video
+        const fileName = `video_${Date.now()}.h264`;
+
         // Create a new PiCamera instance with the options
         const myCamera = new PiCamera({
             mode: 'video',
-            output: `${__dirname}/video.h264`,
+            output: `${__dirname}/${fileName}`,
             width: 640,
             height: 480,
             timeout: 5000, // Record for 5 seconds
@@ -59,7 +43,7 @@ app.get('/video-feed', async (req, res) => {
         await myCamera.record();
 
         // Convert .h264 to .mp4
-        exec(`MP4Box -add ${__dirname}/video.h264 ${__dirname}/video.mp4`, (error, stdout, stderr) => {
+        exec(`MP4Box -add ${__dirname}/${fileName} ${__dirname}/${fileName.replace('.h264', '.mp4')}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error converting video: ${error.message}`);
                 res.status(500).send('Error converting video');
@@ -70,7 +54,7 @@ app.get('/video-feed', async (req, res) => {
             }
 
             // Read the converted video file
-            const videoFile = fs.readFileSync(`${__dirname}/video.mp4`);
+            const videoFile = fs.readFileSync(`${__dirname}/${fileName.replace('.h264', '.mp4')}`);
 
             // Set response headers for video stream
             res.setHeader('Content-Type', 'video/mp4');
