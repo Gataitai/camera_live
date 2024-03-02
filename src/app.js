@@ -3,6 +3,8 @@ const PiCamera = require('pi-camera');
 
 const app = express();
 
+let recordStream;
+
 // Default endpoint to serve HTML page with video element
 app.get('/', (req, res) => {
     res.send(`
@@ -41,29 +43,36 @@ app.get('/video-feed', (req, res) => {
     });
 
     // Start recording
-    const recordStream = myCamera.record();
+    recordStream = myCamera.record();
 
     // Pipe the video stream from the camera output to the response
-    recordStream.on('data', (data) => {
-        res.write(data);
-    });
+    recordStream.pipe(res);
 
     // Handle errors
     recordStream.on('error', (error) => {
         console.error('Error capturing video:', error);
         res.end();
+        process.exit(1); // Exit the process if an error occurs
     });
 
     // Handle graceful shutdown
     req.on('close', () => {
         console.log("Connection closed, stopping recording...");
         recordStream.stop();
-        res.end();
     });
 });
 
 // Start the server
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+    console.error('Unhandled exception:', err);
+    server.close(() => {
+        console.log('Server closed due to uncaught exception');
+        process.exit(1); // Exit the process
+    });
 });
