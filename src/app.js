@@ -19,7 +19,7 @@ wss.on('connection', ws => {
                 mode: 'video',
                 width: 640,
                 height: 480,
-                timeout: 5000, // Record for 5 seconds
+                timeout: 0, // Record indefinitely
                 nopreview: true
             });
 
@@ -34,9 +34,11 @@ wss.on('connection', ws => {
             // Handle errors
             videoStream.on('error', error => {
                 console.error('Error capturing video:', error);
+                ws.close(); // Close WebSocket connection on error
             });
         } catch (error) {
             console.error('Error recording video:', error);
+            ws.close(); // Close WebSocket connection on error
         }
     };
 
@@ -68,7 +70,17 @@ app.get('/', (req, res) => {
             const ws = new WebSocket('ws://localhost:8080');
 
             ws.onmessage = event => {
-                video.src = URL.createObjectURL(new Blob([event.data], { type: 'video/h264' }));
+                const blob = new Blob([event.data], { type: 'video/h264' });
+                const videoURL = URL.createObjectURL(blob);
+                video.src = videoURL;
+            };
+
+            ws.onerror = event => {
+                console.error('WebSocket error:', event);
+            };
+
+            ws.onclose = event => {
+                console.log('WebSocket closed:', event);
             };
         </script>
     </body>
