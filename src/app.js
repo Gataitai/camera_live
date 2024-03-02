@@ -6,7 +6,11 @@ const RaspiCam = require('raspicam');
 const cameraOpts = {
     mode: "video",
     output: "video.h264",
-    timeout: -1 // Capture video indefinitely
+    timeout: -1, // Capture video indefinitely
+    width: 640,
+    height: 480,
+    // Update the path to raspivid
+    command: '/usr/bin/raspivid'
 };
 
 // Create a new instance of RaspiCam with the options
