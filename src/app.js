@@ -1,20 +1,18 @@
 const express = require('express');
+const PiCamera = require('pi-camera');
+const fs = require('fs');
+
 const app = express();
-const RaspiCam = require('raspicam');
 
 // Configure options for the camera
 const cameraOpts = {
-    mode: "video",
-    output: "video.h264",
-    timeout: -1, // Capture video indefinitely
+    mode: 'video',
+    output: 'video.h264',
     width: 640,
     height: 480,
-    // Update the path to raspivid
-    command: '/usr/bin/raspivid'
+    timeout: 0, // Record indefinitely
+    nopreview: true
 };
-
-// Create a new instance of RaspiCam with the options
-const camera = new RaspiCam(cameraOpts);
 
 // Default endpoint to serve HTML page with video element
 app.get('/', (req, res) => {
@@ -43,15 +41,28 @@ app.get('/video-feed', (req, res) => {
     // Set response headers for video stream
     res.setHeader('Content-Type', 'video/mp4');
 
+    // Create a new PiCamera instance with the options
+    const myCamera = new PiCamera(cameraOpts);
+
+    // Start recording
+    const recordStream = myCamera.record();
+
     // Pipe the video stream from the camera output to the response
-    camera.start();
-    camera.on("read", (err, timestamp, filename) => {
-        if (!err) {
-            const fileStream = fs.createReadStream(filename);
-            fileStream.pipe(res);
-        } else {
-            console.error("Error reading file:", err);
-        }
+    recordStream.on('data', (data) => {
+        res.write(data);
+    });
+
+    // Handle errors
+    recordStream.on('error', (error) => {
+        console.error('Error capturing video:', error);
+        res.end();
+    });
+
+    // Handle graceful shutdown
+    req.on('close', () => {
+        console.log("Connection closed, stopping recording...");
+        recordStream.stop();
+        res.end();
     });
 });
 
@@ -59,11 +70,4 @@ app.get('/video-feed', (req, res) => {
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-});
-
-// Listen for the process to exit
-process.on('SIGINT', () => {
-    console.log("Exiting...");
-    camera.stop();
-    process.exit();
 });

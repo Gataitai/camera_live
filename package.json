@@ -11,6 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.3",
-    "raspicam": "^0.2.14"
+    "pi-camera": "^1.7.0"
   }
 }
