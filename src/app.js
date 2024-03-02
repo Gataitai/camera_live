@@ -19,7 +19,21 @@ app.get('/', (req, res) => {
             <video id="videoPlayer" controls autoplay></video>
             <script>
                 const video = document.getElementById('videoPlayer');
-                video.src = '/video-feed';
+                
+                fetch('/video-feed')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const videoURL = URL.createObjectURL(blob);
+                        video.src = videoURL;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching video:', error);
+                    });
             </script>
         </body>
         </html>
