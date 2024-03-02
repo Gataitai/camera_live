@@ -1,7 +1,6 @@
 const express = require('express');
 const PiCamera = require('pi-camera');
 const WebSocket = require('ws');
-const fs = require('fs');
 
 const app = express();
 
@@ -28,7 +27,9 @@ wss.on('connection', ws => {
 
             // Stream video frames to WebSocket client
             videoStream.on('data', data => {
-                ws.send(data);
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(data);
+                }
             });
 
             // Handle errors
