@@ -1,10 +1,8 @@
 const express = require('express');
-const { spawn } = require('child_process');
 const PiCamera = require('pi-camera');
+const fs = require('fs');
 
 const app = express();
-
-let cameraProcess;
 
 // Default endpoint to serve HTML page with video element
 app.get('/', (req, res) => {
@@ -28,61 +26,38 @@ app.get('/', (req, res) => {
     `);
 });
 
+// Endpoint to serve the recorded video file
+app.get('/video-feed', async (req, res) => {
+    try {
+        // Create a new PiCamera instance with the options
+        const myCamera = new PiCamera({
+            mode: 'video',
+            output: `${__dirname}/video.h264`,
+            width: 640,
+            height: 480,
+            timeout: 5000, // Record for 5 seconds
+            nopreview: true
+        });
 
-// Endpoint to serve the video feed
-app.get('/video-feed', (req, res) => {
-    // Set response headers for video stream
-    res.setHeader('Content-Type', 'video/mp4');
+        // Start recording
+        const result = await myCamera.record();
 
-    // Create a new PiCamera instance with the options
-    const myCamera = new PiCamera({
-        mode: 'video',
-        output: `${__dirname}/video.h264`,
-        width: 640,
-        height: 480,
-        timeout: 0, // Record indefinitely
-        nopreview: true
-    });
+        // Read the recorded video file
+        const videoFile = fs.readFileSync(`${__dirname}/video.h264`);
 
-    // Start recording
-    const recordStream = myCamera.record();
+        // Set response headers for video stream
+        res.setHeader('Content-Type', 'video/mp4');
 
-    // Pipe the video stream from the camera output to the response
-    recordStream.pipe(res);
-
-    // Handle errors
-    recordStream.on('error', (error) => {
-        console.error('Error capturing video:', error);
-        res.end();
-    });
-
-    // Handle graceful shutdown
-    req.on('close', () => {
-        console.log("Connection closed, stopping recording...");
-        recordStream.stop();
-        if (cameraProcess) {
-            // Turn off the camera LED
-            spawn('raspistill', ['--led', 'off']);
-        }
-        res.end();
-    });
+        // Send back the recorded video file
+        res.send(videoFile);
+    } catch (error) {
+        console.error('Error recording video:', error);
+        res.status(500).send('Error recording video');
+    }
 });
 
 // Start the server
 const port = process.env.PORT || 3000;
-const server = app.listen(port, () => {
+app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-});
-
-// Listen for the process to exit
-process.on('SIGINT', () => {
-    console.log("Exiting...");
-    server.close(() => {
-        console.log('Server closed');
-    });
-    if (cameraProcess) {
-        // Turn off the camera LED
-        spawn('raspistill', ['--led', 'off']);
-    }
-    process.exit();
 });
