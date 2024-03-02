@@ -1,10 +1,11 @@
 const express = require('express');
 const PiCamera = require('pi-camera');
 const fs = require('fs');
+const { exec } = require('child_process');
 
 const app = express();
 
-// Default endpoint to serve HTML page with video element
+// Default endpoint to serve HTML page with download link
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -38,7 +39,6 @@ app.get('/', (req, res) => {
             </script>
         </body>
         </html>
-
     `);
 });
 
@@ -58,12 +58,26 @@ app.get('/video-feed', async (req, res) => {
         // Start recording
         await myCamera.record();
 
-        // Set response headers for video file
-        res.setHeader('Content-Type', 'video/mp4');
+        // Convert .h264 to .mp4
+        exec(`MP4Box -add ${__dirname}/video.h264 ${__dirname}/video.mp4`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error converting video: ${error.message}`);
+                res.status(500).send('Error converting video');
+                return;
+            }
+            if (stderr) {
+                console.error(`Conversion stderr: ${stderr}`);
+            }
 
-        // Send back the recorded video file
-        const fileStream = fs.createReadStream(`${__dirname}/video.h264`);
-        fileStream.pipe(res);
+            // Read the converted video file
+            const videoFile = fs.readFileSync(`${__dirname}/video.mp4`);
+
+            // Set response headers for video stream
+            res.setHeader('Content-Type', 'video/mp4');
+
+            // Send back the converted video file
+            res.send(videoFile);
+        });
     } catch (error) {
         console.error('Error recording video:', error);
         res.status(500).send('Error recording video');
