@@ -16,9 +16,9 @@ app.get('/', (req, res) => {
         </head>
         <body>
             <h1>Raspberry Pi Video Stream</h1>
-            <video id="videoPlayer" controls autoplay></video>
+            <a id="downloadLink" download="video.mp4" href="#">Download Video</a>
             <script>
-                const video = document.getElementById('videoPlayer');
+                const downloadLink = document.getElementById('downloadLink');
                 
                 fetch('/video-feed')
                     .then(response => {
@@ -29,7 +29,8 @@ app.get('/', (req, res) => {
                     })
                     .then(blob => {
                         const videoURL = URL.createObjectURL(blob);
-                        video.src = videoURL;
+                        downloadLink.href = videoURL;
+                        downloadLink.style.display = 'block'; // Show the download link
                     })
                     .catch(error => {
                         console.error('Error fetching video:', error);
@@ -37,6 +38,7 @@ app.get('/', (req, res) => {
             </script>
         </body>
         </html>
+
     `);
 });
 
