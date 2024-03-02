@@ -32,34 +32,44 @@ app.get('/video-feed', (req, res) => {
     // Set response headers for video stream
     res.setHeader('Content-Type', 'video/mp4');
 
-    // Create a new PiCamera instance with the options
-    const myCamera = new PiCamera({
-        mode: 'video',
-        output: `${__dirname}/video.h264`,
-        width: 640,
-        height: 480,
-        timeout: 0, // Record indefinitely
-        nopreview: true
-    });
+    try {
+        // Create a new PiCamera instance with the options
+        const myCamera = new PiCamera({
+            mode: 'video',
+            output: `${__dirname}/video.h264`,
+            width: 640,
+            height: 480,
+            timeout: 0, // Record indefinitely
+            nopreview: true
+        });
 
-    // Start recording
-    recordStream = myCamera.record();
+        // Start recording
+        recordStream = myCamera.record();
 
-    // Pipe the video stream from the camera output to the response
-    recordStream.pipe(res);
+        // Pipe the video stream from the camera output to the response
+        recordStream.on('data', (data) => {
+            res.write(data);
+        });
 
-    // Handle errors
-    recordStream.on('error', (error) => {
-        console.error('Error capturing video:', error);
-        res.end();
-        process.exit(1); // Exit the process if an error occurs
-    });
+        // Handle errors
+        recordStream.on('error', (error) => {
+            console.error('Error capturing video:', error);
+            res.end();
+            process.exit(1); // Exit the process if an error occurs
+        });
 
-    // Handle graceful shutdown
-    req.on('close', () => {
-        console.log("Connection closed, stopping recording...");
-        recordStream.stop();
-    });
+        // Handle graceful shutdown
+        req.on('close', () => {
+            console.log("Connection closed, stopping recording...");
+            if (recordStream) {
+                recordStream.stop();
+            }
+            res.end();
+        });
+    } catch (error) {
+        console.error('Error starting video feed:', error);
+        res.status(500).send('Internal server error');
+    }
 });
 
 // Start the server
@@ -71,8 +81,18 @@ const server = app.listen(port, () => {
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
     console.error('Unhandled exception:', err);
-    server.close(() => {
-        console.log('Server closed due to uncaught exception');
-        process.exit(1); // Exit the process
-    });
+    if (server) {
+        server.close(() => {
+            console.log('Server closed due to uncaught exception');
+            process.exit(1); // Exit the process
+        });
+    } else {
+        process.exit(1); // Exit the process if server is not defined
+    }
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Application specific logging, throwing an error, or other logic here
 });
