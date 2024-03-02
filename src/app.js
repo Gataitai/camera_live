@@ -40,16 +40,14 @@ app.get('/video-feed', async (req, res) => {
         });
 
         // Start recording
-        const result = await myCamera.record();
+        await myCamera.record();
 
-        // Read the recorded video file
-        const videoFile = fs.readFileSync(`${__dirname}/video.h264`);
-
-        // Set response headers for video stream
+        // Set response headers for video file
         res.setHeader('Content-Type', 'video/mp4');
 
         // Send back the recorded video file
-        res.send(videoFile);
+        const fileStream = fs.createReadStream(`${__dirname}/video.h264`);
+        fileStream.pipe(res);
     } catch (error) {
         console.error('Error recording video:', error);
         res.status(500).send('Error recording video');
