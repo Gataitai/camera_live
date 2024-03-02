@@ -68,7 +68,7 @@ app.get('/', (req, res) => {
         
         <script>
             const video = document.getElementById('videoPlayer');
-            const ws = new WebSocket('ws://localhost:8080');
+            const ws = new WebSocket('wss://localhost:8080');
 
             ws.onmessage = event => {
                 const blob = new Blob([event.data], { type: 'video/h264' });
