@@ -8,8 +8,26 @@ let cameraProcess;
 
 // Default endpoint to serve HTML page with video element
 app.get('/', (req, res) => {
-    res.send(/* Your HTML code here */);
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Raspberry Pi Video Stream</title>
+        </head>
+        <body>
+            <h1>Raspberry Pi Video Stream</h1>
+            <video id="videoPlayer" controls autoplay></video>
+            <script>
+                const video = document.getElementById('videoPlayer');
+                video.src = '/video-feed';
+            </script>
+        </body>
+        </html>
+    `);
 });
+
 
 // Endpoint to serve the video feed
 app.get('/video-feed', (req, res) => {
