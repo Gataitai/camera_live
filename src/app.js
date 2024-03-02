@@ -1,18 +1,7 @@
 const express = require('express');
 const PiCamera = require('pi-camera');
-const fs = require('fs');
 
 const app = express();
-
-// Configure options for the camera
-const cameraOpts = {
-    mode: 'video',
-    output: 'video.h264',
-    width: 640,
-    height: 480,
-    timeout: 0, // Record indefinitely
-    nopreview: true
-};
 
 // Default endpoint to serve HTML page with video element
 app.get('/', (req, res) => {
@@ -42,7 +31,14 @@ app.get('/video-feed', (req, res) => {
     res.setHeader('Content-Type', 'video/mp4');
 
     // Create a new PiCamera instance with the options
-    const myCamera = new PiCamera(cameraOpts);
+    const myCamera = new PiCamera({
+        mode: 'video',
+        output: `${__dirname}/video.h264`,
+        width: 640,
+        height: 480,
+        timeout: 0, // Record indefinitely
+        nopreview: true
+    });
 
     // Start recording
     const recordStream = myCamera.record();
