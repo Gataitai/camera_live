@@ -11,7 +11,7 @@ app.get('/', (req, res) => {
 });
 
 const myCamera = new PiCamera({
-    mode: 'image',
+    mode: 'photo',
     width: 640,
     height: 480,
     nopreview: true
