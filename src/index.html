@@ -12,51 +12,35 @@
 </div>
 
 <script>
-    // Function to fetch and stream video
     async function streamVideo() {
         try {
             const response = await fetch('/video');
-            const reader = response.body.getReader();
             const mediaSource = new MediaSource();
             const videoPlayer = document.getElementById('videoPlayer');
             videoPlayer.src = URL.createObjectURL(mediaSource);
 
             mediaSource.addEventListener('sourceopen', async () => {
-                const mimeCodec = 'video/mp4; codecs="avc1.64001E"'; // Adjust codec as needed
-                const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
-                let receivedLength = 0;
+                const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001E"');
 
-                sourceBuffer.addEventListener('updateend', async () => {
-                    if (!reader) {
-                        return;
-                    }
-
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        mediaSource.endOfStream();
-                        return;
-                    }
-
-                    sourceBuffer.appendBuffer(value);
-                    receivedLength += value.byteLength;
-                });
-
-                // Start reading the stream
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        break;
-                    }
-                    sourceBuffer.appendBuffer(value);
-                    receivedLength += value.byteLength;
-                }
+                response.body
+                    .pipeThrough(new TextDecoderStream())
+                    .pipeTo(new WritableStream({
+                        write(chunk) {
+                            sourceBuffer.appendBuffer(chunk);
+                        },
+                        close() {
+                            mediaSource.endOfStream();
+                        },
+                        abort(error) {
+                            console.error('Stream error:', error);
+                        }
+                    }));
             });
         } catch (error) {
             console.error('Error streaming video:', error);
         }
     }
 
-    // Call the function to start streaming video
     streamVideo();
 </script>
 </body>
