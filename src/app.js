@@ -1,28 +1,10 @@
 const express = require('express');
 const { spawn } = require('child_process');
-const fs = require('fs');
 
 const app = express();
 
-// Function to capture a single frame and send it as JPEG
-function capturePhoto(callback) {
-    // Use ffmpeg to capture a single frame from the video stream
-    const ffmpegProcess = spawn('ffmpeg', ['-i', 'pipe:0', '-frames:v', '1', '-f', 'image2', 'pipe:1']);
-
-    // Pipe the video stream into ffmpeg
-    videoStream.pipe(ffmpegProcess.stdin);
-
-    // When ffmpeg finishes, call the callback function
-    ffmpegProcess.on('exit', () => {
-        callback();
-    });
-}
-
 // Spawn raspivid process
-const raspividProcess = spawn('raspivid', ['-o', '-']);
-
-// Create a writable stream to capture the video output
-const videoStream = raspividProcess.stdout;
+const raspividProcess = spawn('raspivid', ['-t', '0', '-o', '-']);
 
 // Endpoint to serve index.html
 app.get('/', (req, res) => {
@@ -31,8 +13,19 @@ app.get('/', (req, res) => {
 
 // Endpoint to capture a photo and send it
 app.get('/photo', (req, res) => {
-    capturePhoto(() => {
-        res.sendFile(__dirname + '/photo.jpg');
+    // Use ffmpeg to capture a single frame from the video stream and send it directly
+    const ffmpegProcess = spawn('ffmpeg', ['-i', 'pipe:0', '-frames:v', '1', '-f', 'image2', 'pipe:1']);
+
+    raspividProcess.stdout.pipe(ffmpegProcess.stdin);
+    ffmpegProcess.stdout.pipe(res);
+
+    // Handle errors
+    raspividProcess.stderr.on('data', (data) => {
+        console.error(`raspivid error: ${data}`);
+    });
+
+    ffmpegProcess.stderr.on('data', (data) => {
+        console.error(`ffmpeg error: ${data}`);
     });
 });
 
