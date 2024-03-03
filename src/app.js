@@ -3,6 +3,15 @@ const { spawn } = require('child_process');
 
 const app = express();
 
+// Initialize ffmpeg process
+const ffmpegProcess = spawn('ffmpeg', [
+    '-f', 'h264',
+    '-i', '-',
+    '-c:v', 'copy',
+    '-f', 'mp4',
+    'pipe:1'
+]);
+
 // Endpoint to serve index.html
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
@@ -14,16 +23,23 @@ app.get('/video', (req, res) => {
     const raspividProcess = spawn('raspivid', ['-t', '0', '-o', '-']);
 
     // Set response headers for streaming video
-    res.setHeader('Content-Type', 'video/h264'); // Correct content type for raw H.264 video
+    res.setHeader('Content-Type', 'video/mp4'); // Change content type to MP4
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Transfer-Encoding', 'chunked');
 
     // Pipe raspivid output directly to ffmpeg process
     raspividProcess.stdout.pipe(ffmpegProcess.stdin);
 
+    // Pipe ffmpeg output directly to response
+    ffmpegProcess.stdout.pipe(res);
+
     // Handle errors
     raspividProcess.stderr.on('data', (data) => {
         console.error(`raspivid error: ${data}`);
+    });
+
+    ffmpegProcess.stderr.on('data', (data) => {
+        console.error(`ffmpeg error: ${data}`);
     });
 
     res.on('close', () => {
