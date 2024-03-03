@@ -10,15 +10,15 @@ app.get('/', (req, res) => {
 
 // Endpoint to stream video feed
 app.get('/video', (req, res) => {
-    // Spawn raspivid process with desired resolution
-    const raspividProcess = spawn('raspivid', ['-t', '0', '-o', '-', '-w', '1280', '-h', '720']);
+    // Spawn raspivid process
+    const raspividProcess = spawn('raspivid', ['-t', '0', '-o', '-']);
 
     // Set response headers for streaming video
-    res.setHeader('Content-Type', 'video/mp4'); // Set content type to MP4
+    res.setHeader('Content-Type', 'video/h264'); // Correct content type for raw H.264 video
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Transfer-Encoding', 'chunked');
 
-    // Pipe raspivid output through ffmpeg to change container format and resolution
+    // Pipe raspivid output directly to ffmpeg process
     raspividProcess.stdout.pipe(ffmpegProcess.stdin);
 
     // Handle errors
@@ -30,6 +30,7 @@ app.get('/video', (req, res) => {
         // Clean up resources when client disconnects
         console.log('Client disconnected');
         raspividProcess.kill();
+        ffmpegProcess.kill();
     });
 });
 
