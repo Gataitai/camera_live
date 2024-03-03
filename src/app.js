@@ -5,10 +5,11 @@ const app = express();
 
 // Initialize ffmpeg process
 const ffmpegProcess = spawn('ffmpeg', [
+    '-hide_banner',
     '-f', 'h264',
     '-i', '-',
     '-c:v', 'copy',
-    '-f', 'mp4',
+    '-f', 'mpegts', // Change output format to MPEG-TS
     'pipe:1'
 ]);
 
@@ -23,7 +24,7 @@ app.get('/video', (req, res) => {
     const raspividProcess = spawn('raspivid', ['-t', '0', '-o', '-']);
 
     // Set response headers for streaming video
-    res.setHeader('Content-Type', 'video/mp4'); // Change content type to MP4
+    res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Transfer-Encoding', 'chunked');
 
