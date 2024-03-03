@@ -8,7 +8,37 @@
 <body>
 <h1>Raspberry Pi Camera Stream</h1>
 <div style="width: 320px; height: 240px;">
-    <video src="/video" id="videoPlayer" controls autoplay></video>
+    <video id="videoPlayer" controls autoplay></video>
 </div>
+
+<script>
+    // Function to fetch and stream video
+    async function streamVideo() {
+        try {
+            const response = await fetch('/video');
+            const reader = response.body.getReader();
+            const mediaSource = new MediaSource();
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.src = URL.createObjectURL(mediaSource);
+
+            mediaSource.addEventListener('sourceopen', async () => {
+                const mimeCodec = 'video/mp4; codecs="avc1.64001E"'; // Adjust codec as needed
+                const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        break;
+                    }
+                    sourceBuffer.appendBuffer(value);
+                }
+            });
+        } catch (error) {
+            console.error('Error streaming video:', error);
+        }
+    }
+
+    // Call the function to start streaming video
+    streamVideo();
+</script>
 </body>
 </html>

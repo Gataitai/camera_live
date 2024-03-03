@@ -3,6 +3,11 @@ const { spawn } = require('child_process');
 
 const app = express();
 
+// Serve the index.html file
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
 // Set up the /video route to stream raw H.264 data
 app.get('/video', (req, res) => {
     // Set response headers for chunked transfer encoding
@@ -19,6 +24,12 @@ app.get('/video', (req, res) => {
     raspivid.on('exit', (code, signal) => {
         console.log(`raspivid process exited with code ${code} and signal ${signal}`);
         res.end(); // End the response when raspivid process exits
+    });
+
+    // Handle client disconnection
+    res.on('close', () => {
+        console.log('Client disconnected');
+        raspivid.kill(); // Terminate raspivid process if client disconnects
     });
 });
 
