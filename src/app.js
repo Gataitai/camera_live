@@ -20,12 +20,6 @@ app.get('/video', (req, res) => {
         console.log(`raspivid process exited with code ${code} and signal ${signal}`);
         res.end(); // End the response when raspivid process exits
     });
-
-    // Handle client disconnection
-    res.on('close', () => {
-        console.log('Client disconnected');
-        raspivid.kill(); // Terminate raspivid process if client disconnects
-    });
 });
 
 // Start the server
