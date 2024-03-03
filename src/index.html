@@ -20,27 +20,33 @@
             videoPlayer.src = URL.createObjectURL(mediaSource);
 
             mediaSource.addEventListener('sourceopen', async () => {
-                const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001E"');
+                const mimeCodec = 'video/mp4; codecs="avc1.64001E"'; // Adjust codec as needed
+                const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
 
-                response.body
-                    .pipeThrough(new TextDecoderStream())
-                    .pipeTo(new WritableStream({
-                        write(buf) {
-                            sourceBuffer.appendBuffer(buf.data); // Access the actual bytes for appending
-                        },
-                        close() {
+                // Wait for the response body to be readable
+                const reader = response.body.getReader();
+
+                // Function to append data from the response body to the source buffer
+                const appendData = async () => {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) {
                             mediaSource.endOfStream();
-                        },
-                        abort(error) {
-                            console.error('Stream error:', error);
+                            return;
                         }
-                    }));
+                        sourceBuffer.appendStream(value);
+                    }
+                };
+
+                // Start appending data
+                appendData();
             });
         } catch (error) {
             console.error('Error streaming video:', error);
         }
     }
 
+    // Call the function to start streaming video
     streamVideo();
 </script>
 </body>
