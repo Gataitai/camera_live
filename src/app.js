@@ -1,31 +1,46 @@
 const express = require('express');
-const PiCamera = require('pi-camera');
+const http = require('http');
+const WebSocket = require('ws');
+const { spawn } = require('child_process');
+const path = require('path');
+
 const app = express();
-const server = require('http').Server(app);
-const io = require('socket.io');
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
-const port = process.env.PORT || 3000;
-// Default endpoint to serve HTML page with video player
+// Serve the index.html file when accessing the root path
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + "/index.html");
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const myCamera = new PiCamera({
-    mode: 'photo',
-    width: 640,
-    height: 480,
-    nopreview: true
+wss.on('connection', (ws) => {
+    console.log('Client connected');
+
+    // Start streaming camera preview frames
+    const raspivid = spawn('raspivid', [
+        '-t', '0',          // No timeout
+        '-w', '640',        // Width
+        '-h', '480',        // Height
+        '-fps', '25',       // Frames per second
+        '-o', '-'           // Output to stdout
+    ]);
+
+    // Pipe camera output to WebSocket client
+    raspivid.stdout.on('data', (data) => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(data);
+        }
+    });
+
+    // Handle WebSocket client disconnect
+    ws.on('close', () => {
+        console.log('Client disconnected');
+        // Terminate raspivid process when client disconnects
+        raspivid.kill('SIGINT');
+    });
 });
-setInterval(() => {
-    myCamera.snap()
-        .then((result) => {
-            io.emit('image', result);
-        })
-        .catch((error) => {
-            console.log(error);
-        });
 
-}, 1000);
-
-// Start the server
-server.listen(3000);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
