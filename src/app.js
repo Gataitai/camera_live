@@ -3,55 +3,32 @@ const { spawn } = require('child_process');
 
 const app = express();
 
-// Initialize ffmpeg process
-const ffmpegProcess = spawn('ffmpeg', [
-    '-hide_banner',
-    '-f', 'h264',
-    '-i', '-',
-    '-c:v', 'copy',
-    '-f', 'mpegts', // Change output format to MPEG-TS
-    'pipe:1'
-]);
-
-// Endpoint to serve index.html
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
-});
-
-// Endpoint to stream video feed
+// Set up the /video route to stream raw H.264 data
 app.get('/video', (req, res) => {
-    // Spawn raspivid process
-    const raspividProcess = spawn('raspivid', ['-t', '0', '-o', '-']);
-
-    // Set response headers for streaming video
+    // Set response headers for chunked transfer encoding
     res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Connection', 'keep-alive');
     res.setHeader('Transfer-Encoding', 'chunked');
 
-    // Pipe raspivid output directly to ffmpeg process
-    raspividProcess.stdout.pipe(ffmpegProcess.stdin);
+    // Spawn raspivid process to capture video
+    const raspivid = spawn('raspivid', ['-t', '0', '-w', '1280', '-h', '720', '-fps', '25', '-o', '-']);
 
-    // Pipe ffmpeg output directly to response
-    ffmpegProcess.stdout.pipe(res);
+    // Pipe raspivid stdout to response
+    raspivid.stdout.pipe(res);
 
-    // Handle errors
-    raspividProcess.stderr.on('data', (data) => {
-        console.error(`raspivid error: ${data}`);
+    // Handle process exit
+    raspivid.on('exit', (code, signal) => {
+        console.log(`raspivid process exited with code ${code} and signal ${signal}`);
+        res.end(); // End the response when raspivid process exits
     });
 
-    ffmpegProcess.stderr.on('data', (data) => {
-        console.error(`ffmpeg error: ${data}`);
-    });
-
+    // Handle client disconnection
     res.on('close', () => {
-        // Clean up resources when client disconnects
         console.log('Client disconnected');
-        raspividProcess.kill();
-        ffmpegProcess.kill();
+        raspivid.kill(); // Terminate raspivid process if client disconnects
     });
 });
 
-// Start the Express server
+// Start the server
 const port = 3000;
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
