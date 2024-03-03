@@ -14,27 +14,31 @@
 <script>
     async function streamVideo() {
         try {
-            const response = await fetch('/video');
-            const mediaSource = new MediaSource();
             const videoPlayer = document.getElementById('videoPlayer');
+            const mediaSource = new MediaSource();
             videoPlayer.src = URL.createObjectURL(mediaSource);
 
             mediaSource.addEventListener('sourceopen', async () => {
-                const mimeCodec = 'video/mp4; codecs="avc1.64001E"'; // Adjust codec as needed
+                const mimeCodec = 'video/mp4';
                 const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
 
-                sourceBuffer.addEventListener('updateend', async () => {
-                    // Wait for the response body to be readable
-                    const reader = response.body.getReader();
+                const response = await fetch('/video');
+                const reader = response.body.getReader();
+
+                // Function to append data from the response body to the source buffer
+                const appendData = async () => {
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) {
                             mediaSource.endOfStream();
                             return;
                         }
-                        sourceBuffer.appendBuffer(value); // Append the byte data
+                        sourceBuffer.appendBuffer(value);
                     }
-                });
+                };
+
+                // Start appending data
+                appendData();
             });
         } catch (error) {
             console.error('Error streaming video:', error);
