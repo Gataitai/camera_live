@@ -25,7 +25,7 @@ setInterval(() => {
             console.log(error);
         });
 
-}, 1000 / 30);
+}, 1000);
 
 // Start the server
 server.listen(3000);
