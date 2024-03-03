@@ -11,7 +11,7 @@ const raspivid = spawn('raspivid', [
     '-t', '0',          // No timeout
     '-w', '640',        // Width
     '-h', '480',        // Height
-    '-fps', '25',       // Frames per second
+    '-fps', '1',       // Frames per second
     '-o', '-.jpg'       // Output JPEG images to stdout
 ]);
 
@@ -37,11 +37,11 @@ app.get('/', (req, res) => {
 // Route to capture and send a single frame from raspivid
 app.get('/photo', (req, res) => {
     if (imageData) {
-        // Set the response content type to image/jpeg
+        console.log('Sending image data...');
         res.set('Content-Type', 'image/jpeg');
-        // Send the captured image data
         res.send(imageData);
     } else {
+        console.error('Error: No image data available');
         res.status(500).send('Error: No image data available');
     }
 });
