@@ -23,11 +23,9 @@
                 const mimeCodec = 'video/mp4; codecs="avc1.64001E"'; // Adjust codec as needed
                 const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
 
-                // Wait for the response body to be readable
-                const reader = response.body.getReader();
-
-                // Function to append data from the response body to the source buffer
-                const appendData = async () => {
+                sourceBuffer.addEventListener('updateend', async () => {
+                    // Wait for the response body to be readable
+                    const reader = response.body.getReader();
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) {
@@ -36,10 +34,7 @@
                         }
                         sourceBuffer.appendBuffer(value); // Append the byte data
                     }
-                };
-
-                // Start appending data
-                appendData();
+                });
             });
         } catch (error) {
             console.error('Error streaming video:', error);
