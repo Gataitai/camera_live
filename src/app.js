@@ -15,10 +15,11 @@ const raspivid = spawn('raspivid', [
     '-o', '-.jpg'       // Output JPEG images to stdout
 ]);
 
-let imageData = null; // Store the captured image data
+// Buffer to store captured image data
+let imageData = Buffer.alloc(0);
 
 raspivid.stdout.on('data', (data) => {
-    imageData = data; // Update the image data when a new frame is received
+    imageData = Buffer.concat([imageData, data]);
 });
 
 raspivid.on('error', (error) => {
