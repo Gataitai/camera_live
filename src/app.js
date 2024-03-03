@@ -4,20 +4,8 @@ const fs = require('fs');
 
 const app = express();
 
-// Spawn raspivid process
-const raspividProcess = spawn('raspivid', ['-o', '-']);
-
-// Create a writable stream to capture the video output
-const videoStream = raspividProcess.stdout;
-
-// Endpoint to serve index.html
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
-});
-
-
-// Endpoint to capture a single frame and send it as JPEG
-app.get('/photo', (req, res) => {
+// Function to capture a single frame and send it as JPEG
+function capturePhoto(callback) {
     // Create a writable stream to capture the photo
     const photoStream = fs.createWriteStream('photo.jpg');
 
@@ -30,8 +18,26 @@ app.get('/photo', (req, res) => {
     // Pipe the output of ffmpeg into the photo stream
     ffmpegProcess.stdout.pipe(photoStream);
 
-    // When ffmpeg finishes, send the photo as the response
+    // When ffmpeg finishes, call the callback function
     ffmpegProcess.on('exit', () => {
+        callback();
+    });
+}
+
+// Spawn raspivid process
+const raspividProcess = spawn('raspivid', ['-o', '-']);
+
+// Create a writable stream to capture the video output
+const videoStream = raspividProcess.stdout;
+
+// Endpoint to serve index.html
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
+// Endpoint to capture a photo and send it
+app.get('/photo', (req, res) => {
+    capturePhoto(() => {
         res.sendFile(__dirname + '/photo.jpg');
     });
 });
