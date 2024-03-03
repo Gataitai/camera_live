@@ -49,6 +49,13 @@ app.get('/video', (req, res) => {
         raspivid.kill(); // Terminate raspivid process if client disconnects
         ffmpeg.kill();   // Terminate ffmpeg process if client disconnects
     });
+
+    // Handle error when writing to response stream
+    res.on('error', (err) => {
+        console.error('Error writing to response stream:', err);
+        raspivid.kill(); // Terminate raspivid process on error
+        ffmpeg.kill();   // Terminate ffmpeg process on error
+    });
 });
 
 // Start the server
