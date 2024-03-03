@@ -1,54 +1,43 @@
 const express = require('express');
-const http = require('http');
 const { spawn } = require('child_process');
-const path = require('path');
+const fs = require('fs');
 
 const app = express();
-const server = http.createServer(app);
 
-// Start raspivid to capture video frames
-const raspivid = spawn('raspivid', [
-    '-t', '0',          // No timeout
-    '-w', '640',        // Width
-    '-h', '480',        // Height
-    '-fps', '1',       // Frames per second
-    '-o', '-.jpg'       // Output JPEG images to stdout
-]);
+// Spawn raspivid process
+const raspividProcess = spawn('raspivid', ['-o', '-']);
 
-// Buffer to store captured image data
-let imageData = Buffer.alloc(0);
+// Create a writable stream to capture the video output
+const videoStream = raspividProcess.stdout;
 
-raspivid.stdout.on('data', (data) => {
-    imageData = Buffer.concat([imageData, data]);
-});
-
-raspivid.on('error', (error) => {
-    console.error('Error running raspivid:', error);
-});
-
-raspivid.on('close', (code) => {
-    console.log(`raspivid process exited with code ${code}`);
-});
-
-// Serve the index.html file when accessing the root path
+// Endpoint to serve index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(__dirname + '/index.html');
 });
 
-// Route to capture and send a single frame from raspivid
+
+// Endpoint to capture a single frame and send it as JPEG
 app.get('/photo', (req, res) => {
-    if (imageData) {
-        console.log('Sending image data...');
-        res.set('Content-Type', 'image/jpeg');
-        res.send(imageData);
-    } else {
-        console.error('Error: No image data available');
-        res.status(500).send('Error: No image data available');
-    }
+    // Create a writable stream to capture the photo
+    const photoStream = fs.createWriteStream('photo.jpg');
+
+    // Use ffmpeg to capture a single frame from the video stream
+    const ffmpegProcess = spawn('ffmpeg', ['-i', 'pipe:0', '-frames:v', '1', '-f', 'image2', 'pipe:1']);
+
+    // Pipe the video stream into ffmpeg
+    videoStream.pipe(ffmpegProcess.stdin);
+
+    // Pipe the output of ffmpeg into the photo stream
+    ffmpegProcess.stdout.pipe(photoStream);
+
+    // When ffmpeg finishes, send the photo as the response
+    ffmpegProcess.on('exit', () => {
+        res.sendFile(__dirname + '/photo.jpg');
+    });
 });
 
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Start the Express server
+const port = 3000;
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
