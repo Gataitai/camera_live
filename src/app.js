@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 // Endpoint to stream video feed
 app.get('/video', (req, res) => {
     // Set response headers for streaming video
-    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Type', 'video/h264'); // Correct content type for raw H.264 video
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Transfer-Encoding', 'chunked');
 
