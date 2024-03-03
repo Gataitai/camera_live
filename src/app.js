@@ -11,7 +11,7 @@ app.get('/', (req, res) => {
 // Set up the /video route to stream raw H.264 data
 app.get('/video', (req, res) => {
     // Set response headers for chunked transfer encoding
-    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Type', 'video/mp4; codecs="avc1.64001E"');
     res.setHeader('Transfer-Encoding', 'chunked');
 
     // Spawn raspivid process to capture video
