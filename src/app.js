@@ -1,10 +1,7 @@
 const express = require('express');
-const { spawn } = require('child_process');
+const { spawn } = require('child_process'); // Moved require statement here
 
 const app = express();
-
-// Spawn raspivid process
-const raspividProcess = spawn('raspivid', ['-t', '0', '-o', '-']);
 
 // Endpoint to serve index.html
 app.get('/', (req, res) => {
@@ -13,6 +10,9 @@ app.get('/', (req, res) => {
 
 // Endpoint to stream video feed
 app.get('/video', (req, res) => {
+    // Spawn raspivid process
+    const raspividProcess = spawn('raspivid', ['-t', '0', '-o', '-']);
+
     // Set response headers for streaming video
     res.setHeader('Content-Type', 'video/h264'); // Correct content type for raw H.264 video
     res.setHeader('Connection', 'keep-alive');
