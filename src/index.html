@@ -21,37 +21,34 @@
             const videoPlayer = document.getElementById('videoPlayer');
             videoPlayer.src = URL.createObjectURL(mediaSource);
 
-            mediaSource.addEventListener('sourceopen', async () => {
-                const mimeCodec = 'video/mp4; codecs="avc1.64001E"'; // Adjust codec as needed
-                const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+            const mimeCodec = 'video/mp4; codecs="avc1.64001E"'; // Adjust codec as needed
+            const sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+            let receivedLength = 0;
 
-                let receivedLength = 0;
-
-                sourceBuffer.addEventListener('updateend', async () => {
-                    if (!reader) {
-                        return;
-                    }
-
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        mediaSource.endOfStream();
-                        return;
-                    }
-
-                    sourceBuffer.appendBuffer(value);
-                    receivedLength += value.byteLength;
-                });
-
-                // Start reading the stream
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        break;
-                    }
-                    sourceBuffer.appendBuffer(value);
-                    receivedLength += value.byteLength;
+            sourceBuffer.addEventListener('updateend', async () => {
+                if (!reader) {
+                    return;
                 }
+
+                const { done, value } = await reader.read();
+                if (done) {
+                    mediaSource.endOfStream();
+                    return;
+                }
+
+                sourceBuffer.appendBuffer(value);
+                receivedLength += value.byteLength;
             });
+
+            // Start reading the stream
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    break;
+                }
+                sourceBuffer.appendBuffer(value);
+                receivedLength += value.byteLength;
+            }
         } catch (error) {
             console.error('Error streaming video:', error);
         }
