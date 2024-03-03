@@ -22,7 +22,7 @@
             mediaSource.addEventListener('sourceopen', async () => {
                 const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001E"');
 
-                await response.body
+                response.body
                     .pipeThrough(new TextDecoderStream())
                     .pipeTo(new WritableStream({
                         write(buf) {
