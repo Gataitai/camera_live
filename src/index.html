@@ -34,7 +34,7 @@
                             mediaSource.endOfStream();
                             return;
                         }
-                        sourceBuffer.appendStream(value);
+                        sourceBuffer.appendBuffer(value); // Append the byte data
                     }
                 };
 
